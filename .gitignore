@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+medical_summaries.db
+Patient_Report.pdf
