@@ -1,3 +1,4 @@
+from sys import platform
 import streamlit as st
 from transformers import pipeline
 import spacy
@@ -8,7 +9,9 @@ import io
 
 # --- CONFIGURATION ---
 # UPDATE THIS PATH TO WHERE YOU INSTALLED TESSERACT
-pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\Tesseract-OCR\tesseract.exe'
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\tesseract.exe'
+
 
 # Load Spacy for basic processing
 try:
