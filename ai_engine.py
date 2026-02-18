@@ -5,7 +5,7 @@ import pytesseract
 from PIL import Image
 import pdfplumber
 import io
-import os  # Fixed: Added missing import
+import os
 
 # --- CONFIGURATION ---
 # Check if running on local Windows machine or Cloud Linux using os.name
@@ -13,8 +13,15 @@ if os.name == 'nt':  # 'nt' is the internal code for Windows
     # Update this path if your local Tesseract is installed elsewhere
     pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\Tesseract-OCR\tesseract.exe'
 
-# Load Spacy for basic processing
-nlp = spacy.load("en_core_web_sm")
+# --- SELF-HEALING SPACY LOADER ---
+# This block forces the cloud to download the model if it's missing
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    print("Spacy model not found. Downloading now...")
+    from spacy.cli import download
+    download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
 # --- CACHED AI MODELS ---
 @st.cache_resource
