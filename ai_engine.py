@@ -1,4 +1,3 @@
-from sys import platform
 import streamlit as st
 from transformers import pipeline
 import spacy
@@ -9,7 +8,7 @@ import io
 
 # --- CONFIGURATION ---
 # UPDATE THIS PATH TO WHERE YOU INSTALLED TESSERACT
-if platform.system() == "Windows":
+if os.name == 'nt':  # 'nt' is the internal code for Windows
     pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\tesseract.exe'
 
 
