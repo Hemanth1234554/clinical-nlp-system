@@ -5,6 +5,7 @@ import pytesseract
 from PIL import Image
 import pdfplumber
 import io
+import os
 
 # --- CONFIGURATION ---
 # UPDATE THIS PATH TO WHERE YOU INSTALLED TESSERACT
