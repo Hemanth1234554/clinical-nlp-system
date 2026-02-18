@@ -4,6 +4,7 @@ import spacy
 import pytesseract
 from PIL import Image
 import pdfplumber
+import subprocess
 import io
 import os
 
@@ -14,7 +15,11 @@ if os.name == 'nt':  # 'nt' is the internal code for Windows
 
 
 # Load Spacy for basic processing
-nlp = spacy.load("en_core_web_sm")
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
 
 # --- CACHED AI MODELS (THE FIX) ---
 # @st.cache_resource ensures the models only load ONCE.
