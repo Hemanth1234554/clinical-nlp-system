@@ -49,7 +49,6 @@ def create_pdf(summary, risk_data, entities):
     pdf.cell(0, 10, '1. RISK ASSESSMENT', 0, 1)
     pdf.set_font('Arial', '', 11)
     
-    # Clean the data before writing
     r_level = clean_text(f"Risk Level: {risk_data['level']}")
     r_action = clean_text(f"Recommended Action: {risk_data['action']}")
     
@@ -71,17 +70,13 @@ def create_pdf(summary, risk_data, entities):
     
     pdf.multi_cell(0, 8, "The following entities were extracted and verified:")
     
-    # Grouping logic
-    problems = [e['word'] for e in entities if e['entity_group'].upper() in ["DISEASE_DISORDER", "SIGN_SYMPTOM"]]
-    meds = [e['word'] for e in entities if e['entity_group'].upper() in ["MEDICATION", "GENE_PROTEIN"]]
+    # Simple extraction for report
+    extracted_text = ""
+    for ent in entities:
+        if len(ent['word']) > 2 and "##" not in ent['word']:
+             extracted_text += f"- {ent['word']} ({ent['entity_group']})\n"
     
-    # Clean lists
-    prob_str = clean_text(", ".join(set(problems)))
-    meds_str = clean_text(", ".join(set(meds)))
-
-    pdf.set_font('Arial', 'B', 10)
-    pdf.multi_cell(0, 8, f"Identified Symptoms/Diseases: {prob_str}")
-    pdf.multi_cell(0, 8, f"Identified Medications: {meds_str}")
+    pdf.multi_cell(0, 8, clean_text(extracted_text))
     
-    # Return as binary string for the download button
+    # Return as binary string
     return pdf.output(dest='S').encode('latin-1', 'replace')

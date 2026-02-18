@@ -29,7 +29,7 @@ st.sidebar.subheader("📜 Recent History")
 history_data = db_manager.get_all_summaries()
 if history_data:
     for row in history_data[:5]:
-        with st.sidebar.expander(f"{row[3]}"):
+        with st.sidebar.expander(f"Record #{row[0]}"):
             st.write(f"**Summary:** {row[2]}")
 
 # 3. Main Area
@@ -112,72 +112,39 @@ with col2:
         with tab1:
             st.info(st.session_state['summary'])
             
-            # --- NEW PDF EXPORT FEATURE ---
-            if st.session_state['analyzed']:
-                pdf_data = report_gen.create_pdf(
-                    st.session_state['summary'],
-                    st.session_state['risk'],
-                    st.session_state['entities']
-                )
-                
-                col_d1, col_d2 = st.columns(2)
-                with col_d1:
-                    # The old text download
-                    st.download_button("📄 Download Text", data=st.session_state['summary'], file_name="summary.txt")
-                with col_d2:
-                    # The NEW PDF download
-                    st.download_button(
-                        label="📕 Download Official PDF", 
-                        data=pdf_data, 
-                        file_name="Patient_Report.pdf", 
-                        mime="application/pdf",
-                        type="primary" 
-                    )
+            # PDF Generation
+            pdf_bytes = report_gen.create_pdf(
+                st.session_state['summary'],
+                st.session_state['risk'],
+                st.session_state['entities']
+            )
+            
+            st.download_button(
+                label="📕 Download Official PDF", 
+                data=pdf_bytes, 
+                file_name="Patient_Report.pdf", 
+                mime="application/pdf",
+                type="primary" 
+            )
         
         with tab2:
-            st.markdown("### 🧬 Medical Entity Extractor (Strict)")
+            st.markdown("### 🧬 Medical Entity Extractor")
             
-            # MERGE TOKENS
-            clean_entities = []
-            current_word = ""; current_type = ""
-            for entity in st.session_state['entities']:
-                word = entity['word']; entity_type = entity['entity_group']
-                if word.startswith("##"):
-                    current_word += word.replace("##", "")
-                else:
-                    if current_word: clean_entities.append({"word": current_word, "type": current_type})
-                    current_word = word; current_type = entity_type
-            if current_word: clean_entities.append({"word": current_word, "type": current_type})
-            
-            # --- STRICT FILTERING LOGIC ---
-            ignore_types = ["SEVERITY", "DETAILED_DESCRIPTION", "LAB_VALUE", "DOSAGE", "ADMINISTRATION", 
-                            "DATE", "CLINICAL_EVENT", "NONBIOLOGICAL_LOCATION", "DURATION", "ACTIVITY"]
-            # Added "complaints", "recovering", "history" to the ignore list
-            noise_words = ["daily", "twice", "oral", "tablet", "capsule", "mg", "ml", 
-                           "history", "date", "hospital", "patient", "complaints", "recovering"]
-            
+            # Simple Entity Logic for Visualization
             problems = []; meds = []; tests = []
             
-            for ent in clean_entities:
-                t = ent['type'].upper()
-                w = ent['word']
-                
-                # Filters
-                if t in ignore_types: continue
-                if len(w) < 3 and w.upper() not in ["CT", "MRI", "ER", "OR", "IV"]: continue
-                if w.lower() in noise_words: continue
-                if any(char.isdigit() for char in w): continue
-
-                w_clean = w.capitalize()
-
-                if t in ["DISEASE_DISORDER", "SIGN_SYMPTOM"]:
-                    problems.append(w_clean)
-                elif t in ["MEDICATION", "GENE_PROTEIN"]:
-                    meds.append(w_clean)
-                elif t in ["DIAGNOSTIC_PROCEDURE", "BIOLOGICAL_STRUCTURE", "THERAPEUTIC_PROCEDURE"]:
-                    tests.append(w_clean)
-
-            # Columns Display
+            # Basic filtering for demo purposes
+            for ent in st.session_state['entities']:
+                w = ent['word'].replace("##", "")
+                t = ent['entity_group']
+                if len(w) > 2:
+                    if t == "DISEASE_DISORDER" or t == "SIGN_SYMPTOM":
+                        problems.append(w.capitalize())
+                    elif t == "MEDICATION":
+                        meds.append(w.capitalize())
+                    elif t == "DIAGNOSTIC_PROCEDURE":
+                        tests.append(w.capitalize())
+            
             c1, c2, c3 = st.columns(3)
             with c1:
                 st.error(f"**🚨 Problems ({len(set(problems))})**")

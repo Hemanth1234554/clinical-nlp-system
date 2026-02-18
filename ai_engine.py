@@ -5,53 +5,43 @@ import pytesseract
 from PIL import Image
 import pdfplumber
 import io
-import os
+import os  # Fixed: Added missing import
 
 # --- CONFIGURATION ---
-# UPDATE THIS PATH TO WHERE YOU INSTALLED TESSERACT
+# Check if running on local Windows machine or Cloud Linux using os.name
 if os.name == 'nt':  # 'nt' is the internal code for Windows
-    pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\tesseract.exe'
-
+    # Update this path if your local Tesseract is installed elsewhere
+    pytesseract.pytesseract.tesseract_cmd = r'D:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Load Spacy for basic processing
 try:
     nlp = spacy.load("en_core_web_sm")
 except:
-    import os
     os.system("python -m spacy download en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
 
-# --- CACHED AI MODELS (THE FIX) ---
-# @st.cache_resource ensures the models only load ONCE.
-# device=-1 forces it to use your standard CPU safely, avoiding the "meta tensor" crash.
-
+# --- CACHED AI MODELS ---
 @st.cache_resource
 def load_summarizer():
-    print("Loading Summarization Model into Cache...")
     return pipeline("summarization", model="facebook/bart-large-cnn", device=-1)
 
 @st.cache_resource
 def load_ner():
-    print("Loading NER Model into Cache...")
     return pipeline("token-classification", model="d4data/biomedical-ner-all", aggregation_strategy="simple", device=-1)
 
 @st.cache_resource
 def load_qa():
-    print("Loading Q&A Model into Cache...")
     return pipeline("question-answering", model="deepset/roberta-base-squad2", device=-1)
 
 # --- CORE FUNCTIONS ---
-
 def extract_text_from_file(uploaded_file):
     file_type = uploaded_file.type
     text = ""
     try:
         if "image" in file_type:
             image = Image.open(uploaded_file)
-            print("Extracting text from image using OCR...")
             text = pytesseract.image_to_string(image)
         elif "pdf" in file_type:
-            print("Extracting text from PDF...")
             with pdfplumber.open(uploaded_file) as pdf:
                 for page in pdf.pages:
                     extracted = page.extract_text()
@@ -64,15 +54,12 @@ def extract_text_from_file(uploaded_file):
 def summarize_medical_text(text):
     if len(text) < 50:
         return "Text is too short to summarize."
-    
-    # Call the cached model
     summarizer = load_summarizer()
     input_text = text[:3000] 
     summary_result = summarizer(input_text, max_length=150, min_length=30, do_sample=False)
     return summary_result[0]['summary_text']
 
 def get_entities(text):
-    # Call the cached model
     ner_pipeline = load_ner()
     input_text = text[:2000]
     entities = ner_pipeline(input_text)
@@ -87,13 +74,13 @@ def calculate_risk_score(text):
     for k in critical_keywords:
         if k in text_lower:
             score += 3
-            triggers.append(f"Critical Hit: {k}")
+            triggers.append(f"Critical: {k}")
 
     urgent_keywords = ['fracture', 'bleeding', 'fever', '101 f', '102 f', 'shortness of breath', 'vomiting', 'severe pain', 'appendicitis']
     for k in urgent_keywords:
         if k in text_lower:
             score += 2
-            triggers.append(f"Urgent Hit: {k}")
+            triggers.append(f"Urgent: {k}")
             
     standard_keywords = ['nausea', 'dizziness', 'cough', 'rash', 'mild', 'headache', 'pain']
     for k in standard_keywords:
@@ -122,7 +109,6 @@ def calculate_risk_score(text):
     }
 
 def answer_question(context, question):
-    # Call the cached model
     qa_pipeline = load_qa()
     safe_context = context[:4000] 
     result = qa_pipeline(question=question, context=safe_context)
